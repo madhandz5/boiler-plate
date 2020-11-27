@@ -43,9 +43,9 @@ userSchema.pre('save', function (next) {
         bcrypt.genSalt(saltRounds, (err, salt) => {
 
             if (err) return next(err)
-            bcrypt.hash(user.password, salt, (err, hash) => {
+            bcrypt.hash(this.password, salt, (err, hash) => {
                 if (err) return next(err)
-                user.password = hash
+                this.password = hash
                 next()
             })
         })
@@ -65,15 +65,29 @@ userSchema.methods.comparePassword = function (plainPassword, cb) {
 }
 
 //JWT 로 토큰 만들기
-userSchema.methods.generateToken = function (cb) {
+userSchema.methods.generateToken = function (cb)  {
     let user = this
 
-    let token = jwt.sign(user._id.toHexString(), 'secretToken')
+    let token = jwt.sign(this._id.toHexString(), 'secretToken')
 
     user.token = token
     user.save((err, user) => {
         if (err) return cb(err)
         cb(null, user)
+    })
+}
+
+userSchema.statics.findByToken = function (token, cb)  {
+    let user = this
+
+//    Decode Token
+    jwt.verify(token, 'secretToken', (err, decoded) => {
+        //    _id 를 이용하여 유저를 찾고, 가져온 Token 과 DB의 Token 이 일치하는지 확인
+
+        user.findOne({"_id": decoded, "token": token}, (err, user) => {
+            if (err) return cb(err)
+            cb(null, user)
+        })
     })
 }
 
